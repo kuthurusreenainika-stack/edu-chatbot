@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Chatbot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 20px;
+            overflow: hidden;
+            background-color: #ffffffee;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        #chat {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f0f4ff;
+            scroll-behavior: smooth;
+        }
+
+        .msg {
+            max-width: 70%;
+            margin: 10px 0;
+            padding: 12px 18px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s;
+        }
+
+        .msg:hover {
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .user {
+            background: #ff7f50;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+            justify-content: flex-end;
+        }
+
+        .bot {
+            background: #7ef9ff;
+            color: #000;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+
+        .msg span.avatar {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+
+        .input-area {
+            display: flex;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            background-color: #ffffffee;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 25px;
+            border: 1px solid #ccc;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        input:focus {
+            border-color: #7ef9ff;
+        }
+
+        button {
+            margin-left: 10px;
+            padding: 12px 22px;
+            border: none;
+            background-color: #4e9af1;
+            color: white;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #3578e5;
+            transform: scale(1.05);
+        }
+
+        .typing {
+            display: flex;
+            align-items: center;
+            font-style: italic;
+            color: #555;
+        }
+
+        .typing span.dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin: 0 2px;
+            background: #555;
+            border-radius: 50%;
+            animation: blink 1.4s infinite both;
+        }
+
+        .typing span.dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing span.dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+
+            0%,
+            80%,
+            100% {
+                opacity: 0;
+            }
+
+            40% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div id="chat"></div>
+        <div class="input-area">
+            <input type="text" id="msg" placeholder="Ask something..." />
+            <button onclick="sendMsg()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const box = document.getElementById("msg");
+        const chat = document.getElementById("chat");
+        box.focus();
+
+        box.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") sendMsg();
+        });
+
+        async function sendMsg() {
+            const text = box.value.trim();
+            if (!text) return;
+            chat.innerHTML += `<div class="msg user"><span class="avatar">😎</span>${text}</div>`;
+            box.value = "";
+            box.focus();
+            chat.scrollTop = chat.scrollHeight;
+
+            // Typing animation
+            const typingDiv = document.createElement("div");
+            typingDiv.className = "msg bot typing";
+            typingDiv.innerHTML = `<span class="avatar">🤖</span><span class="dot"></span><span class="dot"></span><span class="dot"></span> Typing...`;
+            chat.appendChild(typingDiv);
+            chat.scrollTop = chat.scrollHeight;
+
+            try {
+                const res = await fetch("/api/query", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                typingDiv.remove();
+                chat.innerHTML += `<div class="msg bot"><span class="avatar">🤖</span>${data.reply.replace(/\n/g, "<br>")}</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            } catch (err) {
+                typingDiv.remove();
+                chat.innerHTML += `<div class="msg bot"><span class="avatar">🤖</span>❌ Error: Could not reach server</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }
+        }
+    </script>
+</body>
+
+</html>
